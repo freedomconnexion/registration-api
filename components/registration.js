@@ -53,7 +53,7 @@ function sendTheMail(apiKey, substitutions, templateId) {
     text: ' ',
     html: ' ',
     templateId: templateId,
-    substitutions: substitutions
+    substitutions
   };
   return sgMail.send(msg)
 }
@@ -163,23 +163,26 @@ exports.btRegister = (event, envVars, callback) => {
       if (result && result.success) {
         sendTheMail(
           envVars.sendGridApiKey,
-          {
+          { 
             purchaserFirstName: registration.purchaser_info.first_name,
             totalAmount: accounting.formatMoney(registration.ticket_info.total_amount),
             transactionId: result.transaction.id
           },
           registrationEmailId
         )
-          .then(() => {
-            callback(null, {
-              success: true,
-              transactionId: result.transaction.id
-            });
+        .then(() => {
+          callback(null, {
+            success: true,
+            transactionId: result.transaction.id
+          });
+        })
+        .catch((error) => {
+          //If the email fails, we still want to complete the registation.
+          callback(null, {
+            success: true,
+            transactionId: result.transaction.id
           })
-          .catch((err) => {
-            //should be logging the error
-            console.log(err.toString)
-          })
+        })
         
       }
       else {
