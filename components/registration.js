@@ -173,7 +173,9 @@ exports.btRegister = (event, envVars, callback) => {
         .then(() => {
           callback(null, {
             success: true,
-            transactionId: result.transaction.id
+            transactionId: result.transaction.id,
+            creditCardLast4: result.transaction.creditCard.last4,
+            totalAmount: result.transaction.amount
           });
         })
         .catch((error) => {
