@@ -47,8 +47,14 @@ function sendTheMail(apiKey, substitutions, templateId) {
   sgMail.setApiKey(apiKey);
   sgMail.setSubstitutionWrappers('{{', '}}');
   const msg = {
-    to: 'jhilde@gmail.com',
-    from: 'jhilde@gmail.com',
+    to: {
+      name: `${substitutions.purchaserFirstName} ${substitutions.purchaserLastName}`,
+      email: substitutions.purchaserEmail
+    },
+    from: {
+      name: 'Justin Hildebrandt',
+      email: 'justin@freedomconnexion.org'
+    },
     subject: 'Apps & Drinks Tickets',
     text: ' ',
     html: ' ',
@@ -62,34 +68,34 @@ class Registration {
   constructor(n) {
     let errors = [];
 
-    this.ticket_info = {};
-    this.ticket_info.total_amount = n.ticket_info.total_amount;
+    this.ticketInfo = {};
+    this.ticketInfo.totalAmount = n.ticketInfo.totalAmount;
     //if (n.donation_info.amount < 10) {
     //  errors.push('Amount is less than $10.');
     //}
     // Need to add math check on back end
-    this.ticket_info.quantity = n.ticket_info.quantity;
+    this.ticketInfo.quantity = n.ticketInfo.quantity;
   
-    this.purchaser_info = {};
+    this.purchaserInfo = {};
 
-    this.purchaser_info.first_name = validateInputAndSet(validator.isAlpha, n.purchaser_info.first_name, "Missing valid first name.", errors);
-    this.purchaser_info.last_name = validateInputAndSet(validator.isAlpha, n.purchaser_info.last_name, "Missing valid last name.", errors);
-    this.purchaser_info.email = validateInputAndSet(validator.isEmail, n.purchaser_info.email, "Missing valid email.", errors);
-    this.purchaser_info.phone = n.purchaser_info.phone;
+    this.purchaserInfo.firstName = validateInputAndSet(validator.isAlpha, n.purchaserInfo.firstName, "Missing valid first name.", errors);
+    this.purchaserInfo.lastName = validateInputAndSet(validator.isAlpha, n.purchaserInfo.lastName, "Missing valid last name.", errors);
+    this.purchaserInfo.email = validateInputAndSet(validator.isEmail, n.purchaserInfo.email, "Missing valid email.", errors);
+    this.purchaserInfo.phone = n.purchaserInfo.phone;
 
-    this.purchaser_info.address = {};
-    this.purchaser_info.address.street_address = validateInputAndSet(validator.isAscii, n.purchaser_info.address.street_address, "Missing valid street address.", errors);
-    this.purchaser_info.address.city = validateInputAndSet(validator.isAlpha, n.purchaser_info.address.city, "Missing valid city.", errors);
+    this.purchaserInfo.address = {};
+    this.purchaserInfo.address.streetAddress = validateInputAndSet(validator.isAscii, n.purchaserInfo.address.streetAddress, "Missing valid street address.", errors);
+    this.purchaserInfo.address.city = validateInputAndSet(validator.isAlpha, n.purchaserInfo.address.city, "Missing valid city.", errors);
 
 
-    if (isValidValue(n.purchaser_info.address.state, states)) {
-      this.purchaser_info.address.state = n.purchaser_info.address.state;
+    if (isValidValue(n.purchaserInfo.address.state, states)) {
+      this.purchaserInfo.address.state = n.purchaserInfo.address.state;
     } else {
       errors.push('Missing valid state')
     }
 
 
-    this.purchaser_info.address.zip = validateInputAndSet(isZip, n.purchaser_info.address.zip, "Missing valid zip code.", errors);
+    this.purchaserInfo.address.zip = validateInputAndSet(isZip, n.purchaserInfo.address.zip, "Missing valid zip code.", errors);
 
     this.nonce = n.nonce;
 
@@ -102,27 +108,27 @@ class Registration {
 
 class BraintreeSale {
   constructor(registration) {
-    this.amount = registration.ticket_info.total_amount;
+    this.amount = registration.ticketInfo.totalAmount;
     this.paymentMethodNonce = registration.nonce;
 
     this.customer = {};
-    this.customer.firstName = registration.purchaser_info.first_name;
-    this.customer.lastName = registration.purchaser_info.last_name;
-    this.customer.phone = registration.purchaser_info.phone;
-    this.customer.email = registration.purchaser_info.email;
+    this.customer.firstName = registration.purchaserInfo.firstName;
+    this.customer.lastName = registration.purchaserInfo.lastName;
+    this.customer.phone = registration.purchaserInfo.phone;
+    this.customer.email = registration.purchaserInfo.email;
 
     this.billing = {};
-    this.billing.streetAddress = registration.purchaser_info.address.street_address;
-    this.billing.extendedAddress = registration.purchaser_info.address.extended_address;
-    this.billing.locality = registration.purchaser_info.address.city;
-    this.billing.region = registration.purchaser_info.address.state;
-    this.billing.postalCode = registration.purchaser_info.address.zip;
+    this.billing.streetAddress = registration.purchaserInfo.address.streetAddress;
+    this.billing.extendedAddress = registration.purchaserInfo.address.extendedAddress;
+    this.billing.locality = registration.purchaserInfo.address.city;
+    this.billing.region = registration.purchaserInfo.address.state;
+    this.billing.postalCode = registration.purchaserInfo.address.zip;
 
     this.options = {};
     this.options.submitForSettlement = true;
 
     this.customFields = {};
-    this.customFields.ticket_count = registration.ticket_info.quantity;
+    this.customFields.ticketCount = registration.ticketInfo.quantity;
   }
 }
 
@@ -163,10 +169,14 @@ exports.btRegister = (event, envVars, callback) => {
       if (result && result.success) {
         sendTheMail(
           envVars.sendGridApiKey,
-          { 
-            purchaserFirstName: registration.purchaser_info.first_name,
-            totalAmount: accounting.formatMoney(registration.ticket_info.total_amount),
-            transactionId: result.transaction.id
+          {
+            purchaserEmail: registration.purchaserInfo.email,
+            purchaserFirstName: registration.purchaserInfo.firstName,
+            purchaserLastName: registration.purchaserInfo.lastName,
+            totalAmount: accounting.formatMoney(registration.ticketInfo.totalAmount),
+            transactionId: result.transaction.id,
+            creditCardLast4: result.transaction.creditCard.last4,
+            ticketQuantity: registration.ticketInfo.quantity
           },
           registrationEmailId
         )
